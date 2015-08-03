@@ -9,7 +9,6 @@
 #import "AppDelegate.h"
 #import "DocoVideoMakeController.h"
 #import "DoCoPlayAndEditController.h"
-#import "VideoFinishController.h"
 
 #import "UncaughtExceptionHandl.h"
 
@@ -40,28 +39,29 @@
     
     [DDLog addLogger:fileLogger withLevel:DDLogLevelWarning];
     InstallUncaughtExceptionHandler();
-//    MyLog(@"%@",fileLogger.logFileManager.logsDirectory);
+    //    MyLog(@"%@",fileLogger.logFileManager.logsDirectory);
     //fileLogger.logFileManager.logsDirectory
     
     if(DEVICE_SIZE.height > 480){
         
-//        self.autoSizeScaleX = 1.0;
-//        self.autoSizeScaleY = 1.0;
-
+        //        self.autoSizeScaleX = 1.0;
+        //        self.autoSizeScaleY = 1.0;
+        
         self.autoSizeScaleX = DEVICE_SIZE.width/320;
         self.autoSizeScaleY = DEVICE_SIZE.height/568;
     }else{
         self.autoSizeScaleX = 1.0;
         self.autoSizeScaleY = 1.0;
     }
-
+    
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     
     application.statusBarHidden = NO;
-    DoCoVideoMakeController *videoMake = [[DoCoVideoMakeController alloc] init];
-    VideoNavigationController *videoNavController = [[VideoNavigationController alloc]initWithRootViewController:videoMake];
+    DoCoPlayAndEditController *edit = [[DoCoPlayAndEditController alloc]init];
+    VideoNavigationController *videoNavController = [[VideoNavigationController alloc]initWithRootViewController:edit];
+    
     self.window.rootViewController = videoNavController;
-
+    
     [self.window makeKeyAndVisible];
     return YES;
 }
@@ -88,7 +88,7 @@
     if([CommonTool createFolderIfNotExistForFolderPath:[FileTool getSaveFolderPathStringWithFolderName:@"temp"]]){
         MyLog(@"music文件夹创建成功");
     }
-
+    
 }
 
 
@@ -96,12 +96,12 @@
 {
     MyLog(@"内存警告，appDelegate！！");
     
-//    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Warning!!"
-//                                                    message:@"内存警告！"
-//                                                   delegate:self
-//                                          cancelButtonTitle:@"取消"
-//                                          otherButtonTitles:@"请退出程序", nil];
-//    [alert show];
+    //    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Warning!!"
+    //                                                    message:@"内存警告！"
+    //                                                   delegate:self
+    //                                          cancelButtonTitle:@"取消"
+    //                                          otherButtonTitles:@"请退出程序", nil];
+    //    [alert show];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {

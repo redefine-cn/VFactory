@@ -11,7 +11,7 @@
 #import "DoCoVideoTrimmerView.h"
 #import "DoCoProject.h"
 #import "DoCoProjectPart.h"
-#import "DoCoCollectionView.h"  
+#import "DoCoCollectionView.h"
 #import "DXPopover.h"
 #import "UIView+Shadow.h"
 #import "customButton.h"
@@ -177,10 +177,117 @@
 }
 -(void)viewDidLoad{
     [super viewDidLoad];
+    [self initScriptData];
+    [self initFolder];
     [self loadPlist];
     [self buildUI];
     
 }
+
+-(void)initFolder{
+    NSString *folderName = [NSString stringWithFormat:@"project%@",[CommonTool getTimestamp]];
+    NSString *projectsPath = [FileTool getSaveFolderPathStringWithFolderName:@"projects"];
+    if([CommonTool createFolderIfNotExistForFolderPath:projectsPath]){
+        MyLog(@"大文件夹创建成功");
+    }
+    //获取带有随机字符串的文件夹路径
+    NSString *projectPath = [projectsPath stringByAppendingPathComponent:folderName];
+    _project.folderPath = projectPath;
+    _project.isNew = YES;
+    _project.num = -1;
+    _project.createTime = [CommonTool nowDate];
+    
+    if([CommonTool createFolderIfNotExistForFolderPath:projectPath]){
+        MyLog(@"小文件夹创建成功");
+    }
+    
+    if([CommonTool createFolderIfNotExistForFolderPath:[FileTool getSaveFolderPathStringWithFolderName:VIDEO_FOLDER]]){
+        MyLog(@"videos文件夹创建成功");
+    }
+    
+    if([CommonTool createFolderIfNotExistForFolderPath:[FileTool getSaveFolderPathStringWithFolderName:@"data"]]){
+        MyLog(@"data文件夹创建成功");
+    }
+    
+}
+
+-(void)initScriptData{
+#pragma mark-删除视频数据
+    NSString *Folder = [FileTool getSaveFolderPathStringWithFolderName:@"data"];
+    NSURL *url = [NSURL fileURLWithPath:Folder];
+    [FileTool removeFile:url];
+    Folder = [FileTool getSaveFolderPathStringWithFolderName:@"projects"];
+    url = [NSURL fileURLWithPath:Folder];
+    [FileTool removeFile:url];
+    
+    Folder = [FileTool getSaveFolderPathStringWithFolderName:@"videos"];
+    url = [NSURL fileURLWithPath:Folder];
+    [FileTool removeFile:url];
+    
+    NSString *scriptDataPath = [[NSBundle mainBundle]pathForResource:@"model" ofType:@"plist" ];
+    NSDictionary *model = [NSDictionary dictionaryWithContentsOfFile:scriptDataPath];
+    _project = [[DoCoProject alloc]init];
+    [self setProjectWithModel:model];
+}
+
+-(void)setProjectWithModel:(NSDictionary *)model {
+    //这是allmodels里的model
+    _project.scriptName = model[@"name"];
+    //这里获取了截取帧的位置
+    _project.frameTime = [self getTimeFromFrame:model[@"frameTime"]]/1000;
+    //这里定义了视频方向
+    _project.isPortrait = NO;
+    //加载model的描述文件
+    NSString *desModelPath = [[NSBundle mainBundle]pathForResource:[NSString stringWithFormat:@"%@model",_project.scriptName] ofType:@"plist" ];
+    NSDictionary *desModel = [NSDictionary dictionaryWithContentsOfFile:desModelPath];
+    NSMutableArray *partArray = [[NSMutableArray alloc]init];
+    for (int i=0; i<desModel.count-1; i++) {
+        NSString *partkey = [NSString stringWithFormat:@"part%d",i+1];
+        NSDictionary *partDic = desModel[partkey];
+        DoCoProjectPart *part = [self getProjectPartWithPart:partDic];
+        if (i==0||i==desModel.count-2) {
+            part.image = [UIImage imageNamed:@"moter.png"];
+        }else{
+            part.videoPath = [[NSBundle mainBundle]pathForResource:@"example" ofType:@"mov"];
+        }
+        [partArray addObject:part];
+    }
+    _project.partArray = partArray;
+}
+
+-(float)getTimeFromFrame:(NSDictionary *)dic{
+    float second = [(NSNumber *) dic[@"second"] floatValue];
+    float frame = [(NSNumber *)dic[@"frame"] floatValue];
+    float startTime = second*1000+frame*40;
+    return startTime;
+}
+
+-(DoCoProjectPart *)getProjectPartWithPart:(NSDictionary *)partDic
+{
+    DoCoProjectPart *part = [[DoCoProjectPart alloc]init];
+    part.partName = partDic[@"partName"];
+    part.minTime = [self getTimeFromFrame:partDic[@"minTime"]]/1000;
+    part.maxTime = [self getTimeFromFrame:partDic[@"maxTime"]]/1000;
+    if (partDic[@"previewImage"] && ![@"" isEqualToString:partDic[@"previewImage"]]) {
+        part.previewImage = [UIImage imageNamed:partDic[@"previewImage"]];
+    }else{
+        part.previewImage = [UIImage imageNamed:@"旅游1.png"];
+    }
+    part.previewVideo = [[NSBundle mainBundle]pathForResource:partDic[@"previewVideo"] ofType:nil];
+    
+    //解析字幕条目
+    NSArray *subtitles = partDic[@"subtitles"];
+    for (int i=0; i<subtitles.count;i++) {
+        NSDictionary *subtitle = subtitles[i];
+        DoCoSubtitle *st = [[DoCoSubtitle alloc]init];
+        st.textName = subtitle[@"textName"];
+        st.isShow = subtitle[@"isShow"];
+        st.maxNum = [(NSNumber *)subtitle[@"maxNum"] floatValue];
+        [part.subtitles addObject:st];
+    }
+    return part;
+}
+
 
 
 -(void)dealloc{
@@ -191,6 +298,7 @@
 -(void)loadPlist{
     
     NSString *plistPath = [[NSBundle mainBundle]pathForResource:_project.scriptName ofType:@"plist"];
+    MyLog(@"plist的名字%@",_project.scriptName);
     NSDictionary *plist = [NSDictionary dictionaryWithContentsOfFile:plistPath];
     _segments = [NSMutableDictionary dictionaryWithDictionary:plist[@"segments"]];
     _overalls = [NSMutableDictionary dictionaryWithDictionary: plist[@"overall_layers"]];
@@ -287,7 +395,7 @@
     currentPart = _project.partArray[1];
     
     _titleCollection = [[DoCoCollectionView alloc]initWithFrame:titleCollectionFrame dataSource:contents itemSize:itemSize itemColumnSpace:titleCellColumnSpace itemRowSpace:0 privateKey:@"title"];
-
+    
     _titleCollection.docoDelegate = self;
     [_contentView addSubview:_titleCollection];
     
@@ -302,13 +410,12 @@
     UIImageView *rightArrow = [[UIImageView alloc]initWithFrame:CGRectMake(rightArrowX, arrowY, leftArrowW, leftArrowH)];
     rightArrow.image = [UIImage imageNamed:@"arrow_point_right"];
     [self.view addSubview:rightArrow];
-
+    
 }
 
 -(void)initPlayer{
     float x = 0;
     float y = CGRectGetMaxY(_titleCollection.frame)+playTopSpace*autoScaleY;
-    
     
     NSURL *fileURL =[NSURL fileURLWithPath:currentPart.videoPath];
     _currentAsset = [AVAsset assetWithURL:fileURL];
@@ -320,7 +427,6 @@
     
     _dcPlayView =[[DCPlayView alloc]initWithFrame:CGRectMake(x,y,width,height) contentUrl:filepath];
     _dcPlayView.delegate=self;
-    
     
     [_dcPlayView.layer setBorderColor:color(245, 199, 32, 1.0).CGColor];
     [_dcPlayView.layer setBorderWidth:2];
@@ -334,7 +440,6 @@
     [_contentView addSubview:_dcPlayView];
     
     [self initTimeView];
-    
 }
 
 -(void)initTimeView{
@@ -379,6 +484,7 @@
     [docoTrimView setClipsToBounds:YES];
     [docoTrimView setStartTime:0];
     float duration = CMTimeGetSeconds(_currentAsset.duration);
+    MyLog(@"duration:%f",duration);
     [docoTrimView setEndTime:duration];
     
     [docoTrimView setThemeColor:color(245, 199, 32, 1.0)];
@@ -456,8 +562,10 @@
     NSString *text;
     if (![textField.text isEqualToString:@""]) {
         text = textField.text;
+        MyLog(@"text:%@",text);
     }else{
         text = textField.placeholder;
+        MyLog(@"placeholder:%@",text);
     }
     if([text isEqualToString:subtitle.text]){
         return;
@@ -498,7 +606,7 @@
     [_nextButton.titleLabel setFont:[UIFont fontWithName:commonFont size:btnFontSize]];
     [self.nextButton setTitleColor:cellSelecteColor forState:UIControlStateNormal];
     [self.nextButton addTarget:self action:@selector(pressNextBtn) forControlEvents:UIControlEventTouchUpInside];
-
+    
     [_contentView addSubview:self.nextButton];
     
 }
@@ -525,6 +633,7 @@
 
 -(void)pressPreviewBtn
 {
+    MyLog(@"currentindex%ld",(long)_currentIndex);
     if (!currentPart.okVideoUrl) {
         if (!self.hud) {
             self.hud = [[MBProgressHUD alloc] initWithView:_contentView];
@@ -539,38 +648,39 @@
             UIImage *headImage = currentPart.image;
             NSURL *headURL = [[NSBundle mainBundle]URLForResource:@"heng" withExtension:@"mov"];
             [DoCoExporterManager videoApplyAnimationAtFileURL:headURL orientation:AVCaptureVideoOrientationLandscapeRight  duration:currentPart.maxTime outputFilePath:outputPath
-                Animation:^(AVMutableVideoComposition *videoCom,CGSize size){
-                    [self animation:videoCom Size:size headImage:headImage footImage:nil seg:_segments[@"segment1"] subs:currentPart.subtitles];
-                } Completion:^(NSURL *outputURL){
-        
-                    [_hud hide:YES];
-                    [_hud removeFromSuperview];
-                    _hud = nil;
-                    currentPart.okVideoUrl = outputURL;
-                    //保证每次点击都重新创建视频播放控制器视图，避免再次点击时由于不播放的问题
-                    _moviePlayerViewController = nil;
-                    
-                    [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
-                }];
+                                                    Animation:^(AVMutableVideoComposition *videoCom,CGSize size){
+                                                        [self animation:videoCom Size:size headImage:headImage footImage:nil seg:_segments[@"segment1"] subs:currentPart.subtitles];
+                                                    } Completion:^(NSURL *outputURL){
+                                                        
+                                                        [_hud hide:YES];
+                                                        [_hud removeFromSuperview];
+                                                        _hud = nil;
+                                                        currentPart.okVideoUrl = outputURL;
+                                                        //保证每次点击都重新创建视频播放控制器视图，避免再次点击时由于不播放的问题
+                                                        _moviePlayerViewController = nil;
+                                                        
+                                                        [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
+                                                    }];
             
         }
         else if (i==_project.partArray.count-1){
+            MyLog(@"进入foot");
             UIImage *footImage = currentPart.image;
             NSString *outputPath = [NSString stringWithFormat:@"%@/%lu.mp4",_project.folderPath,i+1];
             NSURL *footURL = [[NSBundle mainBundle]URLForResource:@"heng" withExtension:@"mov"];
             [DoCoExporterManager videoApplyAnimationAtFileURL:footURL orientation:AVCaptureVideoOrientationLandscapeRight  duration:currentPart.maxTime outputFilePath:outputPath
-            Animation:^(AVMutableVideoComposition *videoCom,CGSize size){
-                [self animation:videoCom Size:size headImage:nil footImage:footImage seg:_segments[[NSString stringWithFormat:@"segment%lu",i+1]] subs:currentPart.subtitles];
-            } Completion:^(NSURL *outputURL){
-                [_hud hide:YES];
-                [_hud removeFromSuperview];
-                _hud = nil;
-                currentPart.okVideoUrl = outputURL;
-                //保证每次点击都重新创建视频播放控制器视图，避免再次点击时由于不播放的问题
-                _moviePlayerViewController = nil;
-                
-                [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
-            }];
+                                                    Animation:^(AVMutableVideoComposition *videoCom,CGSize size){
+                                                        [self animation:videoCom Size:size headImage:nil footImage:footImage seg:_segments[[NSString stringWithFormat:@"segment%lu",i+1]] subs:currentPart.subtitles];
+                                                    } Completion:^(NSURL *outputURL){
+                                                        [_hud hide:YES];
+                                                        [_hud removeFromSuperview];
+                                                        _hud = nil;
+                                                        currentPart.okVideoUrl = outputURL;
+                                                        //保证每次点击都重新创建视频播放控制器视图，避免再次点击时由于不播放的问题
+                                                        _moviePlayerViewController = nil;
+                                                        
+                                                        [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
+                                                    }];
         }
         else{
             NSURL *videoUrl1 = [NSURL fileURLWithPath:currentPart.videoPath];
@@ -579,22 +689,23 @@
                 
                 NSString *outputPath = [NSString stringWithFormat:@"%@/%lu.mp4",_project.folderPath,i+1];
                 [DoCoExporterManager videoApplyAnimationAtFileURL:outputURL orientation:AVCaptureVideoOrientationLandscapeRight  duration:0 outputFilePath:outputPath
-                Animation:^(AVMutableVideoComposition *videoCom,CGSize size){
+                                                        Animation:^(AVMutableVideoComposition *videoCom,CGSize size){
                                                             
-                    [self animation:videoCom Size:size headImage:nil footImage:nil seg:_segments[[NSString stringWithFormat:@"segment%lu",i+1]] subs:currentPart.subtitles];
-                }
-                 Completion:^(NSURL *outputURL){
-                    [_hud hide:YES];
-                    [_hud removeFromSuperview];
-                    _hud = nil;
-                    currentPart.okVideoUrl = outputURL;
-                    //保证每次点击都重新创建视频播放控制器视图，避免再次点击时由于不播放的问题
-                    _moviePlayerViewController = nil;
-                    
-                    [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
+                                                            [self animation:videoCom Size:size headImage:nil footImage:nil seg:_segments[[NSString stringWithFormat:@"segment%lu",i+1]] subs:currentPart.subtitles];
+                                                        }
+                                                       Completion:^(NSURL *outputURL){
+                                                           MyLog(@"执行完毕");
+                                                           [_hud hide:YES];
+                                                           [_hud removeFromSuperview];
+                                                           _hud = nil;
+                                                           currentPart.okVideoUrl = outputURL;
+                                                           //保证每次点击都重新创建视频播放控制器视图，避免再次点击时由于不播放的问题
+                                                           _moviePlayerViewController = nil;
+                                                           
+                                                           [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
+                                                           
+                                                       }];
                 
-            }];
-
             }];
         }
     }else{
@@ -603,7 +714,7 @@
         
         [self presentMoviePlayerViewControllerAnimated:self.moviePlayerViewController];
     }
-
+    
 }
 -(void)pressNextBtn{
     [_dcPlayView pause];
@@ -620,15 +731,15 @@
 
 -(void)animation:(AVMutableVideoComposition *)videoCom Size:(CGSize)size headImage:(UIImage *)headImage footImage:(UIImage *)footImage seg:(NSDictionary *)segment subs:(NSMutableArray *)subs{
     //以后添加视频本身的效果
-//    NSDictionary *video = segment[@"video"];
-//        float startTime = [self getTimeFromFrame:segment[@"starttime"]];
+    //    NSDictionary *video = segment[@"video"];
+    //        float startTime = [self getTimeFromFrame:segment[@"starttime"]];
     AnimationAnalysisTool *tool = [[AnimationAnalysisTool alloc]init];
     
     CALayer *parentLayer = [CALayer layer];
     CALayer *videoLayer = [CALayer layer];
     parentLayer.frame = CGRectMake(0, 0, size.width, size.height);
     videoLayer.frame = CGRectMake(0, 0, size.width, size.height);
-//    videoLayer = [tool setupLayerWithDic:video startTime:startTime type:nil];
+    //    videoLayer = [tool setupLayerWithDic:video startTime:startTime type:nil];
     if (segment[@"backgroundImage"]) {//有背景图
         UIImage *bgImage = [UIImage imageNamed:segment[@"backgroundImage"]];
         CALayer *layer = [CALayer layer];
@@ -656,12 +767,6 @@
     videoCom.animationTool = [AVVideoCompositionCoreAnimationTool videoCompositionCoreAnimationToolWithPostProcessingAsVideoLayer:videoLayer inLayer:parentLayer];
 }
 
--(float)getTimeFromFrame:(NSDictionary *)dic{
-    float second = [(NSNumber *) dic[@"second"] floatValue];
-    float frame = [(NSNumber *)dic[@"frame"] floatValue];
-    float startTime = second*1000+frame*40;
-    return startTime;
-}
 
 #pragma mark - UIResponder
 
@@ -713,7 +818,7 @@
     currentPart.startTime = startTime;
     
     CMTime cmtime =CMTimeMake(startTime*timeScale, timeScale);
-
+    
     [_dcPlayView speed:cmtime];
 }
 
@@ -760,7 +865,7 @@
 {
     
     UICollectionViewCell *cell = [collection cellForItemAtIndexPath:[NSIndexPath indexPathForItem:index inSection:0]];
-
+    
     if ([privateKey isEqualToString:@"pop"]) {
         
         [UIView animateWithDuration:0.5f animations:^{
@@ -774,19 +879,19 @@
                 if (currentPart.image) {//替换照片
                     dispatch_async(dispatch_get_main_queue(), ^{
                         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Tip"
-                                message:@"确定要替换图片吗？"
-                               delegate:self
-                      cancelButtonTitle:@"保留"
-                      otherButtonTitles:@"替换", nil];
+                                                                        message:@"确定要替换图片吗？"
+                                                                       delegate:self
+                                                              cancelButtonTitle:@"保留"
+                                                              otherButtonTitles:@"替换", nil];
                         [alert show];
                     });
                 }else{//替换视频
                     dispatch_async(dispatch_get_main_queue(), ^{
                         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Tip"
-                                message:@"确定要替换视频吗？"
-                               delegate:self
-                      cancelButtonTitle:@"保留"
-                      otherButtonTitles:@"替换", nil];
+                                                                        message:@"确定要替换视频吗？"
+                                                                       delegate:self
+                                                              cancelButtonTitle:@"保留"
+                                                              otherButtonTitles:@"替换", nil];
                         [alert show];
                     });
                 }
@@ -797,7 +902,7 @@
         
         
     }else if([privateKey isEqualToString:@"title"]){
-
+        
         if (_currentIndex == index) {
             float x=CGRectGetMinX(cell.frame)+CGRectGetMinX(_titleCollection.frame)-_titleCollection.collectionView.contentOffset.x;
             float y;
@@ -840,6 +945,7 @@
             //videotrimer
             docoTrimView.minLength = part.minTime;
             docoTrimView.maxLength = CMTimeGetSeconds(_currentAsset.duration);
+            MyLog(@"==%f",docoTrimView.maxLength);
             [docoTrimView resetSubviews];
             _leftTimeLabel.text = [NSString stringWithFormat:@"%.2f",part.startTime];
             _rightTimeLabel.text = [NSString stringWithFormat:@"%.2f",part.endTime];
@@ -889,15 +995,15 @@
 -(BOOL)textFieldShouldReturn: (UITextField *)TextField{
     
     [TextField resignFirstResponder];
-
+    
     return YES;
 }
 
 #pragma mark-mediaplayer的代理和通知
 
 -(NSURL *)getFileUrl{
-//    NSString *urlStr=[[NSBundle mainBundle] pathForResource:@"rain.mp4" ofType:nil];
-//    NSURL *url=[NSURL fileURLWithPath:urlStr];
+    //    NSString *urlStr=[[NSBundle mainBundle] pathForResource:@"rain.mp4" ofType:nil];
+    //    NSURL *url=[NSURL fileURLWithPath:urlStr];
     DoCoProjectPart *part = _project.partArray[1];
     NSString *urlStr=part.videoPath;
     NSURL *url=[NSURL fileURLWithPath:urlStr];
@@ -935,12 +1041,16 @@
 -(void)mediaPlayerPlaybackStateChange:(NSNotification *)notification{
     switch (self.moviePlayerViewController.moviePlayer.playbackState) {
         case MPMoviePlaybackStatePlaying:
+            NSLog(@"正在播放...");
             break;
         case MPMoviePlaybackStatePaused:
+            NSLog(@"暂停播放.");
             break;
         case MPMoviePlaybackStateStopped:
+            NSLog(@"停止播放.");
             break;
         default:
+            NSLog(@"播放状态:%li",self.moviePlayerViewController.moviePlayer.playbackState);
             break;
     }
 }
@@ -951,7 +1061,7 @@
  *  @param notification 通知对象
  */
 -(void)mediaPlayerPlaybackFinished:(NSNotification *)notification{
-
+    NSLog(@"播放完成.%li",self.moviePlayerViewController.moviePlayer.playbackState);
 }
 
 @end
