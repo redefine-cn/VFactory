@@ -22,15 +22,19 @@
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    setenv("XcodeColors", "YES", 0);
     UIApplication* app = [ UIApplication  sharedApplication ];
     app.networkActivityIndicatorVisible = YES;
     //配置服务器信息
     self.DocoConfigType = kConfigTypeNormal;
-    [[DDTTYLogger sharedInstance] setColorsEnabled:YES];
-    [[DDTTYLogger sharedInstance] setForegroundColor:[UIColor redColor] backgroundColor:nil forFlag:DDLogFlagError];
+    
     //配置自定义日志框架
     [DDLog addLogger:[DDASLLogger sharedInstance]withLevel:DDLogLevelVerbose];
     [DDLog addLogger:[DDTTYLogger sharedInstance]withLevel:DDLogLevelVerbose];
+    [[DDTTYLogger sharedInstance] setColorsEnabled:YES];
+    [[DDTTYLogger sharedInstance] setForegroundColor:[UIColor redColor] backgroundColor:nil forFlag:DDLogFlagError];
+    
+    [[DDTTYLogger sharedInstance] setForegroundColor:[UIColor blueColor] backgroundColor:nil forFlag:DDLogFlagWarning];
     //配置日志文件   保持一周
     DDFileLogger *fileLogger = [[DDFileLogger alloc] init];
     fileLogger.rollingFrequency = 60 * 60 * 24; // 24 hour rolling
@@ -38,6 +42,7 @@
     fileLogger.logFileManager.maximumNumberOfLogFiles = 7;
     
     [DDLog addLogger:fileLogger withLevel:DDLogLevelWarning];
+    
     InstallUncaughtExceptionHandler();
     //    MyLog(@"%@",fileLogger.logFileManager.logsDirectory);
     //fileLogger.logFileManager.logsDirectory

@@ -188,7 +188,6 @@
     NSString *folderName = [NSString stringWithFormat:@"project%@",[CommonTool getTimestamp]];
     NSString *projectsPath = [FileTool getSaveFolderPathStringWithFolderName:@"projects"];
     if([CommonTool createFolderIfNotExistForFolderPath:projectsPath]){
-        MyLog(@"大文件夹创建成功");
     }
     //获取带有随机字符串的文件夹路径
     NSString *projectPath = [projectsPath stringByAppendingPathComponent:folderName];
@@ -198,15 +197,12 @@
     _project.createTime = [CommonTool nowDate];
     
     if([CommonTool createFolderIfNotExistForFolderPath:projectPath]){
-        MyLog(@"小文件夹创建成功");
     }
     
     if([CommonTool createFolderIfNotExistForFolderPath:[FileTool getSaveFolderPathStringWithFolderName:VIDEO_FOLDER]]){
-        MyLog(@"videos文件夹创建成功");
     }
     
     if([CommonTool createFolderIfNotExistForFolderPath:[FileTool getSaveFolderPathStringWithFolderName:@"data"]]){
-        MyLog(@"data文件夹创建成功");
     }
     
 }
@@ -231,20 +227,24 @@
 }
 
 -(void)setProjectWithModel:(NSDictionary *)model {
+    if (!model[@"name"]) {
+        DDLogError(@"请检查应用配置文件model.plist");
+    }
     //这是allmodels里的model
     _project.scriptName = model[@"name"];
-    //这里获取了截取帧的位置
-    _project.frameTime = [self getTimeFromFrame:model[@"frameTime"]]/1000;
     //这里定义了视频方向
     _project.isPortrait = NO;
     //加载model的描述文件
     NSString *desModelPath = [[NSBundle mainBundle]pathForResource:[NSString stringWithFormat:@"%@model",_project.scriptName] ofType:@"plist" ];
+    if (!desModelPath) {
+        DDLogError(@"%@model.plist文件不存在",_project.scriptName);
+    }
     NSDictionary *desModel = [NSDictionary dictionaryWithContentsOfFile:desModelPath];
     NSMutableArray *partArray = [[NSMutableArray alloc]init];
     for (int i=0; i<desModel.count-1; i++) {
         NSString *partkey = [NSString stringWithFormat:@"part%d",i+1];
         NSDictionary *partDic = desModel[partkey];
-        DoCoProjectPart *part = [self getProjectPartWithPart:partDic];
+        DoCoProjectPart *part = [self getProjectPartWithPart:partDic index:i+1];
         if (i==0||i==desModel.count-2) {
             part.image = [UIImage imageNamed:@"moter.png"];
         }else{
@@ -262,26 +262,47 @@
     return startTime;
 }
 
--(DoCoProjectPart *)getProjectPartWithPart:(NSDictionary *)partDic
+-(DoCoProjectPart *)getProjectPartWithPart:(NSDictionary *)partDic index:(int)index
 {
     DoCoProjectPart *part = [[DoCoProjectPart alloc]init];
+    if (!partDic[@"partName"]) {
+        DDLogWarn(@"第%d部分名称（partName）不存在",index);
+    }
     part.partName = partDic[@"partName"];
+    
+    if (!partDic[@"minTime"]) {
+        DDLogError(@"第%d部分最小时间（minTime）不存在",index);
+    }
     part.minTime = [self getTimeFromFrame:partDic[@"minTime"]]/1000;
+    
+    if (!partDic[@"maxTime"]) {
+        DDLogError(@"第%d部分最大时间（maxTime）不存在",index);
+    }
     part.maxTime = [self getTimeFromFrame:partDic[@"maxTime"]]/1000;
+    
     if (partDic[@"previewImage"] && ![@"" isEqualToString:partDic[@"previewImage"]]) {
         part.previewImage = [UIImage imageNamed:partDic[@"previewImage"]];
     }else{
+        DDLogWarn(@"第%d部分预览图片（previewImage）不存在或无效",index);
         part.previewImage = [UIImage imageNamed:@"旅游1.png"];
     }
     part.previewVideo = [[NSBundle mainBundle]pathForResource:partDic[@"previewVideo"] ofType:nil];
-    
+    if (!part.previewVideo) {
+        DDLogWarn(@"第%d部分预览视频（previewVideo）不存在或无效",index);
+    }
     //解析字幕条目
     NSArray *subtitles = partDic[@"subtitles"];
     for (int i=0; i<subtitles.count;i++) {
         NSDictionary *subtitle = subtitles[i];
         DoCoSubtitle *st = [[DoCoSubtitle alloc]init];
         st.textName = subtitle[@"textName"];
-        st.isShow = subtitle[@"isShow"];
+        if (!st.textName) {
+            DDLogError(@"第%d部分的第%d个‘字幕名称’（textName）不存在",index,i+1);
+        }
+        st.isShow = [subtitle[@"isshow"] boolValue];
+        if (!subtitle[@"isshow"]) {
+            DDLogError(@"第%d部分字幕的第%d个‘是否展示’（isShow）不存在",index,i+1);
+        }
         st.maxNum = [(NSNumber *)subtitle[@"maxNum"] floatValue];
         [part.subtitles addObject:st];
     }
@@ -298,11 +319,22 @@
 -(void)loadPlist{
     
     NSString *plistPath = [[NSBundle mainBundle]pathForResource:_project.scriptName ofType:@"plist"];
-    MyLog(@"plist的名字%@",_project.scriptName);
+    if (!plistPath) {
+        DDLogError(@"%@.plist文件不存在，请检查文件名",_project.scriptName);
+    }
     NSDictionary *plist = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+    if (!plist[@"segments"]) {
+        DDLogError(@"%@.plist文件中缺少segments项",_project.scriptName);
+    }
     _segments = [NSMutableDictionary dictionaryWithDictionary:plist[@"segments"]];
     _overalls = [NSMutableDictionary dictionaryWithDictionary: plist[@"overall_layers"]];
+    if (!plist[@"cutto_layers"]) {
+        DDLogError(@"%@.plist文件中缺少cutto_layers项",_project.scriptName);
+    }
     _cuttolayers = [NSMutableDictionary dictionaryWithDictionary:plist[@"cutto_layers"]];
+    if (!plist[@"cuttos"]) {
+        DDLogError(@"%@.plist文件中缺少cuttos项",_project.scriptName);
+    }
     _cuttos = [NSMutableDictionary dictionaryWithDictionary: plist[@"cuttos"]];
 }
 
@@ -484,7 +516,6 @@
     [docoTrimView setClipsToBounds:YES];
     [docoTrimView setStartTime:0];
     float duration = CMTimeGetSeconds(_currentAsset.duration);
-    MyLog(@"duration:%f",duration);
     [docoTrimView setEndTime:duration];
     
     [docoTrimView setThemeColor:color(245, 199, 32, 1.0)];
@@ -562,10 +593,8 @@
     NSString *text;
     if (![textField.text isEqualToString:@""]) {
         text = textField.text;
-        MyLog(@"text:%@",text);
     }else{
         text = textField.placeholder;
-        MyLog(@"placeholder:%@",text);
     }
     if([text isEqualToString:subtitle.text]){
         return;
@@ -633,7 +662,6 @@
 
 -(void)pressPreviewBtn
 {
-    MyLog(@"currentindex%ld",(long)_currentIndex);
     if (!currentPart.okVideoUrl) {
         if (!self.hud) {
             self.hud = [[MBProgressHUD alloc] initWithView:_contentView];
@@ -664,7 +692,6 @@
             
         }
         else if (i==_project.partArray.count-1){
-            MyLog(@"进入foot");
             UIImage *footImage = currentPart.image;
             NSString *outputPath = [NSString stringWithFormat:@"%@/%lu.mp4",_project.folderPath,i+1];
             NSURL *footURL = [[NSBundle mainBundle]URLForResource:@"heng" withExtension:@"mov"];
@@ -740,7 +767,7 @@
     parentLayer.frame = CGRectMake(0, 0, size.width, size.height);
     videoLayer.frame = CGRectMake(0, 0, size.width, size.height);
     //    videoLayer = [tool setupLayerWithDic:video startTime:startTime type:nil];
-    if (segment[@"backgroundImage"]) {//有背景图
+    if (segment[@"backgroundImage"] && ![segment[@"backgroundImage"] isEqualToString:@""]) {//有背景图
         UIImage *bgImage = [UIImage imageNamed:segment[@"backgroundImage"]];
         CALayer *layer = [CALayer layer];
         layer.frame = CGRectMake(0, 0, size.width, size.height);
@@ -945,7 +972,7 @@
             //videotrimer
             docoTrimView.minLength = part.minTime;
             docoTrimView.maxLength = CMTimeGetSeconds(_currentAsset.duration);
-            MyLog(@"==%f",docoTrimView.maxLength);
+
             [docoTrimView resetSubviews];
             _leftTimeLabel.text = [NSString stringWithFormat:@"%.2f",part.startTime];
             _rightTimeLabel.text = [NSString stringWithFormat:@"%.2f",part.endTime];
@@ -1041,16 +1068,16 @@
 -(void)mediaPlayerPlaybackStateChange:(NSNotification *)notification{
     switch (self.moviePlayerViewController.moviePlayer.playbackState) {
         case MPMoviePlaybackStatePlaying:
-            NSLog(@"正在播放...");
+
             break;
         case MPMoviePlaybackStatePaused:
-            NSLog(@"暂停播放.");
+
             break;
         case MPMoviePlaybackStateStopped:
-            NSLog(@"停止播放.");
+
             break;
         default:
-            NSLog(@"播放状态:%li",self.moviePlayerViewController.moviePlayer.playbackState);
+
             break;
     }
 }
@@ -1061,7 +1088,7 @@
  *  @param notification 通知对象
  */
 -(void)mediaPlayerPlaybackFinished:(NSNotification *)notification{
-    NSLog(@"播放完成.%li",self.moviePlayerViewController.moviePlayer.playbackState);
+
 }
 
 @end

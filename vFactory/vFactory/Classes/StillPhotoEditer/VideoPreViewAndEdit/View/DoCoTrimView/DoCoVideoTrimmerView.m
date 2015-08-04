@@ -239,7 +239,6 @@
 {
     self.startTime = (CGRectGetMaxX(self.leftOverlayView.frame)-barWidth) / self.widthPerSecond ;
     self.endTime = (CGRectGetMinX(self.rightOverlayView.frame)-barWidth) / self.widthPerSecond ;
-    //NSLog(@"start time: %f, end time: %f", self.startTime, self.endTime);
     if(dir==0){//左
         [self.delegate trimmerView:self didChangeLeftPosition:self.startTime];
     }else{//右

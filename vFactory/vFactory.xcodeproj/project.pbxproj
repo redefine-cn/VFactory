@@ -262,7 +262,7 @@
 		8B4B75AB1B6F02FB002D138A /* UIImage+WebP.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+WebP.m"; sourceTree = "<group>"; };
 		8B4B75AC1B6F02FB002D138A /* UIImageView+WebCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImageView+WebCache.h"; sourceTree = "<group>"; };
 		8B4B75AD1B6F02FB002D138A /* UIImageView+WebCache.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImageView+WebCache.m"; sourceTree = "<group>"; };
-		8B4B76681B6F185C002D138A /* model.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = model.plist; sourceTree = "<group>"; };
+		8B4B76681B6F185C002D138A /* model.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = model.plist; path = data/model.plist; sourceTree = "<group>"; };
 		8BA21C5F1B6EFE6C00510CF0 /* AVCamCaptureManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AVCamCaptureManager.h; sourceTree = "<group>"; };
 		8BA21C601B6EFE6C00510CF0 /* AVCamCaptureManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AVCamCaptureManager.m; sourceTree = "<group>"; };
 		8BA21C611B6EFE6C00510CF0 /* AVCamRecorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AVCamRecorder.h; sourceTree = "<group>"; };
@@ -449,6 +449,7 @@
 		8B380C0F1B6B22B100410BA1 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				8B4B76681B6F185C002D138A /* model.plist */,
 				8BA21E4F1B6EFECF00510CF0 /* UsedImages */,
 				8BA21E4E1B6EFEAB00510CF0 /* vFactory-Prefix.pch */,
 				8BA21D921B6EFE7600510CF0 /* data */,
@@ -965,7 +966,6 @@
 		8BA21D921B6EFE7600510CF0 /* data */ = {
 			isa = PBXGroup;
 			children = (
-				8B4B76681B6F185C002D138A /* model.plist */,
 				8BA21DB21B6EFE7600510CF0 /* moter.png */,
 				8BA21DB81B6EFE7600510CF0 /* 放飞梦想 */,
 			);

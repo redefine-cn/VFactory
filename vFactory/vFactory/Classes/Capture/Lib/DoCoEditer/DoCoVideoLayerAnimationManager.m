@@ -28,7 +28,6 @@
     
     NSArray *audioTracks = [asset tracksWithMediaType:AVMediaTypeAudio];
     if (audioTracks.count==0) {
-        MyLog(@"audioTracks为空了");
     }
     AVAssetTrack *audioTrack = ([audioTracks count]>0)?[audioTracks objectAtIndex:0]:nil;
     
@@ -56,7 +55,6 @@
     _totalDuration = CMTimeAdd(_totalDuration, asset.duration);
     _totalDuration = CMTimeSubtract(_totalDuration, aniDur);
     float total = _totalDuration.value*1.0 / _totalDuration.timescale*1000;
-    MyLog(@"总时间计算：%f",total);
     [_totalDurs addObject:[NSNumber numberWithFloat:total]];
 }
 
@@ -67,7 +65,6 @@
     NSArray *videoTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *videoTrack = videoTracks[0];
     if (videoTracks.count==0) {
-        MyLog(@"videoTracks为空了");
     }
     
     AVMutableCompositionTrack *videoComTrack = [_mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
@@ -120,7 +117,6 @@
     NSArray *videoTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *videoTrack = videoTracks[0];
     if (videoTracks.count==0) {
-        MyLog(@"videoTracks为空了");
     }
     
     AVMutableCompositionTrack *videoComTrack = [_mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
@@ -158,7 +154,6 @@
     NSArray *videoTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *videoTrack = videoTracks[0];
     if (videoTracks.count==0) {
-        MyLog(@"videoTracks为空了");
     }
     
     AVMutableCompositionTrack *videoComTrack = [_mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
@@ -199,7 +194,6 @@
     NSArray *videoTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *videoTrack = videoTracks[0];
     if (videoTracks.count==0) {
-        MyLog(@"videoTracks为空了");
     }
     
     AVMutableCompositionTrack *videoComTrack = [_mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
@@ -238,7 +232,6 @@
     NSArray *videoTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *videoTrack = videoTracks[0];
     if (videoTracks.count==0) {
-        MyLog(@"videoTracks为空了");
     }
     
     AVMutableCompositionTrack *videoComTrack = [_mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
@@ -273,7 +266,6 @@
     //总时间计算
     _totalDuration = CMTimeAdd(_totalDuration, asset.duration);
     float total = _totalDuration.value*1.0 / _totalDuration.timescale*1000;
-    MyLog(@"总时间计算：%f",total);
     [_totalDurs addObject:[NSNumber numberWithFloat:total]];
     [layerInstruciton setOpacity:0.0 atTime:_totalDuration];
     //data

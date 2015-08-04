@@ -288,7 +288,21 @@
 -(CAAnimationGroup *)groupAnimation:(NSDictionary *)animations WithSegStartTime:(float)startTime
 
 {
-    float beginTime = [self getTimeFromFrame:animations[@"starttime"]]/1000;
+    if (!animations[@"starttime"]) {
+        DDLogError(@"animations的开始时间(starttime)未设置");
+    }else{
+        if (![animations[@"starttime"] isKindOfClass:[NSDictionary class]]) {
+            DDLogError(@"animations的开始时间(starttime)值错误");
+        }
+    }
+    float beginTime = [self getTimeFromFrame:animations[@"duration"]]/1000;
+    if (!animations[@"duration"]) {
+        DDLogError(@"animations的持续时间(duration)未设置");
+    }else{
+        if (![animations[@"duration"] isKindOfClass:[NSDictionary class]]) {
+            DDLogError(@"animations的持续时间(duration)值错误");
+        }
+    }
     float duration = [self getTimeFromFrame:animations[@"duration"]];
     
     NSMutableArray *groupAnimations = [[NSMutableArray alloc]init];
@@ -298,6 +312,9 @@
             break;
         }
         NSDictionary *animation = animations[anikey];
+        if (!animation[@"name"]) {
+            DDLogError(@"%@的名称(name)未设置",anikey);
+        }
         NSString *name = animation[@"name"];
         MyLog(@"动画名称：%@",name);
         NSString *funcName = [NSString stringWithFormat:@"%@Animation:groupBeginTime:",name];

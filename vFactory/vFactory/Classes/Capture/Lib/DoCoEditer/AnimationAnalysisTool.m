@@ -12,14 +12,35 @@
 @implementation AnimationAnalysisTool
 
 -(void)setupLayerWithDic:(NSDictionary *)layer toLayer:(CALayer *)anilayer startTime:(float)startTime type:(NSString *)type{
-    
+    if (!layer[@"opacity"]) {
+        DDLogError(@"layer的透明度(opacity)未设置");
+    }else{
+        if (![layer[@"opacity"] isKindOfClass:[NSNumber class]]) {
+            DDLogError(@"layer的透明度(opacity)值类型错误");
+        }
+    }
     //获取透明度
     float opacity = [(NSNumber *)layer[@"opacity"] floatValue]/100;
     [anilayer setOpacity:opacity];
     
+    if (!layer[@"anchorpoint"]) {
+        DDLogError(@"layer的锚点(anchorpoint)未设置");
+    }else{
+        if (![layer[@"anchorpoint"] isKindOfClass:[NSDictionary class]]) {
+            DDLogError(@"layer的锚点(anchorpoint)值类型错误");
+        }
+    }
     //获取锚点
     NSDictionary *anchorpoint = layer[@"anchorpoint"];
     float ax,ay;
+    
+    if (!layer[@"position"]) {
+        DDLogError(@"layer的位置(position)未设置");
+    }else{
+        if (![layer[@"position"] isKindOfClass:[NSDictionary class]]) {
+            DDLogError(@"layer的位置(position)值类型错误");
+        }
+    }
     //获取坐标
     NSDictionary *position = layer[@"position"];
     float px = [(NSNumber *)position[@"x"] floatValue];
@@ -35,6 +56,14 @@
         py = 960-py;
         anilayer.frame = CGRectMake(px, py, 540, 960);
     }
+    
+    if (!layer[@"size"]) {
+        DDLogError(@"layer的大小(size)未设置");
+    }else{
+        if (![layer[@"size"] isKindOfClass:[NSDictionary class]]) {
+            DDLogError(@"layer的大小(size)值类型错误");
+        }
+    }
     //layer的大小
     //获取大小
     NSDictionary *size = layer[@"size"];
@@ -47,6 +76,13 @@
     anilayer.anchorPoint = CGPointMake(ax, ay);
     anilayer.position = CGPointMake(px, py);
     
+    if (!layer[@"scale"]) {
+        DDLogError(@"layer的大小(scale)未设置");
+    }else{
+        if (![layer[@"scale"] isKindOfClass:[NSDictionary class]]) {
+            DDLogError(@"layer的大小(scale)值类型错误");
+        }
+    }
     //获取scale
     NSDictionary *scale = layer[@"scale"];
     float sx = [(NSNumber *)scale[@"x"] floatValue]/100;
@@ -104,7 +140,7 @@
             NSString *imageName = layer[@"imageName"];
             UIImage *aniImage = [UIImage imageNamed:imageName];
             if (!aniImage) {
-                MyLog(@"图片%@的名称错误或图片不存在",imageName);
+                DDLogError(@"图片%@的名称错误或图片不存在",imageName);
             }
             [animationlayer setContents:(id)aniImage.CGImage];
             [parentLayer addSublayer:animationlayer];
@@ -124,7 +160,7 @@
             NSString *imageName = layer[@"imageName"];
             UIImage *aniImage = [UIImage imageNamed:imageName];
             if (!aniImage) {
-                MyLog(@"图片%@的名称错误或图片不存在",imageName);
+                DDLogError(@"图片%@的名称错误或图片不存在",imageName);
             }
             [animationlayer setContents:(id)aniImage.CGImage];
             [parentLayer addSublayer:animationlayer];
@@ -180,7 +216,7 @@
         //内容
         NSString *text = subtitle[@"textName"];
         if (subs.count<=i) {
-            MyLog(@"描述文件和脚本文件的字幕不匹配，本条字幕放弃！");
+            DDLogError(@"描述文件和脚本文件的字幕不匹配，本条字幕放弃！");
             continue;
         }
         DoCoSubtitle *sub = subs[i];
@@ -228,7 +264,7 @@
         NSString *imageName = layer[@"imageName"];
         UIImage *aniImage = [UIImage imageNamed:imageName];
         if (!aniImage) {
-            MyLog(@"图片%@的名称错误或图片不存在",imageName);
+            DDLogError(@"图片%@的名称错误或图片不存在",imageName);
         }
         [animationlayer setContents:(id)aniImage.CGImage];
         [parentLayer addSublayer:animationlayer];
@@ -255,11 +291,11 @@
             AVAssetTrack *sourceAudioTrack = [[songAsset tracksWithMediaType:AVMediaTypeAudio] objectAtIndex:0];
             [manager setUpAndAddAudioAtPath:sourceAudioTrack start:startTime dura:manager.totalDuration Type:@"bg"];
         }else{
-            MyLog(@"背景音乐不存在");
+            DDLogWarn(@"背景音乐不存在");
         }
 
     }else{
-        MyLog(@"背景音乐未填写");
+        DDLogWarn(@"背景音乐未填写");
     }
     
     //加载转场动画和音效
@@ -296,11 +332,11 @@
                 AVAssetTrack *sourceAudioTrack = [[songAsset tracksWithMediaType:AVMediaTypeAudio] objectAtIndex:0];
                 [manager setUpAndAddAudioAtPath:sourceAudioTrack start:startTime dura:duration Type:@"cutto"];
             }else{
-                MyLog(@"转场音效不存在");
+                DDLogWarn(@"转场音效不存在");
             }
             
         }else{
-            MyLog(@"转场音效未填");
+            DDLogWarn(@"转场音效未填");
         }
         MyLog(@"%@合成完毕",cuttolayerkey);
         

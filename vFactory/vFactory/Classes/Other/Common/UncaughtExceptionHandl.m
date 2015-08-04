@@ -160,10 +160,6 @@ void HandleException(NSException *exception)
                         name,reason,[arr componentsJoinedByString:@"<br>"]];
     NSURL *url = [NSURL URLWithString:[urlStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
     [[UIApplication sharedApplication] openURL:url];
-    
-    //或者直接用代码，输入这个崩溃信息，以便在console中进一步分析错误原因
-    DDLogError(@"doco, CRASH: %@", exception);
-    DDLogError(@"doco, Stack Trace: %@", [exception callStackSymbols]);
 }
 
 void SignalHandler(int signal)
